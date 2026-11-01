@@ -1,0 +1,11 @@
+product_id,model,variant,series,price_band,launch_date,mrp,unit_cost
+1,moto e14,4GB/64GB,E Series,Entry (<10k),2025-02-01,7499,5999.0
+2,moto g45 5G,8GB/128GB,G Series,Budget (10-20k),2024-08-01,12999,10399.0
+3,moto g64 5G,8GB/128GB,G Series,Budget (10-20k),2024-04-01,15999,12639.0
+4,moto g85 5G,8GB/128GB,G Series,Budget (10-20k),2024-07-01,19999,15599.0
+5,moto g85 5G Pro,12GB/256GB,G Series,Mid (20-30k),2025-03-01,22999,17939.0
+6,edge 50 Fusion,8GB/128GB,Edge Series,Mid (20-30k),2024-05-01,24999,18999.0
+7,edge 50 Neo,8GB/256GB,Edge Series,Mid (20-30k),2024-10-01,27999,21279.0
+8,edge 60 Fusion,8GB/256GB,Edge Series,Mid (20-30k),2025-04-01,25999,19759.0
+9,edge 60 Pro,12GB/256GB,Edge Series,Premium (30k+),2025-05-01,33999,25499.0
+10,razr 60,8GB/256GB,Razr Foldable,Premium (30k+),2025-06-01,54999,39599.0

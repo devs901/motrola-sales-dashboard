@@ -1,0 +1,89 @@
+// =====================================================================
+// Motorola Mobile Sales - DAX measures
+// Create an empty table named "_Measures" (Home > Enter data) and add
+// each measure below with Modeling > New measure.
+// Tables: fact_sales, dim_product, dim_region, dim_channel, dim_date
+// =====================================================================
+
+// ---------- Core ----------
+Units Sold = SUM ( fact_sales[units] )
+
+Revenue =
+SUMX ( fact_sales, fact_sales[units] * fact_sales[unit_price] )
+
+Cost =
+SUMX ( fact_sales, fact_sales[units] * fact_sales[unit_cost] )
+
+Gross Profit = [Revenue] - [Cost]
+
+Gross Margin % = DIVIDE ( [Gross Profit], [Revenue] )
+
+Orders = COUNTROWS ( fact_sales )
+
+Avg Selling Price = DIVIDE ( [Revenue], [Units Sold] )
+
+Revenue (Crore) = DIVIDE ( [Revenue], 10000000 )
+
+// ---------- Pricing & discounting ----------
+MRP Value =
+SUMX ( fact_sales, fact_sales[units] * fact_sales[mrp] )
+
+Avg Discount % = 1 - DIVIDE ( [Revenue], [MRP Value] )
+
+// ---------- Returns & customer ----------
+Returned Orders =
+CALCULATE ( [Orders], fact_sales[returned] = 1 )
+
+Return Rate % = DIVIDE ( [Returned Orders], [Orders] )
+
+Avg Rating = AVERAGE ( fact_sales[customer_rating] )
+
+// ---------- Time intelligence (dim_date must be marked as a date table) ----------
+Revenue LY =
+CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )
+
+Revenue YoY % = DIVIDE ( [Revenue] - [Revenue LY], [Revenue LY] )
+
+Revenue MoM % =
+VAR prev = CALCULATE ( [Revenue], DATEADD ( dim_date[date], -1, MONTH ) )
+RETURN DIVIDE ( [Revenue] - prev, prev )
+
+Revenue YTD = TOTALYTD ( [Revenue], dim_date[date] )
+
+Revenue 3M Moving Avg =
+// average monthly revenue over the last 3 months
+DIVIDE (
+    CALCULATE ( [Revenue], DATESINPERIOD ( dim_date[date], MAX ( dim_date[date] ), -3, MONTH ) ),
+    3
+)
+
+// ---------- Share & ranking ----------
+Revenue Share % =
+DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_product ) ) )
+
+Revenue Share by Region % =
+DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_region ) ) )
+
+Model Rank = RANKX ( ALL ( dim_product[model] ), [Revenue], , DESC, DENSE )
+
+Top 3 Model Revenue Share % =
+VAR top3 =
+    TOPN ( 3, ALL ( dim_product[model] ), [Revenue], DESC )
+RETURN
+    DIVIDE ( CALCULATE ( [Revenue], KEEPFILTERS ( top3 ) ), CALCULATE ( [Revenue], ALL ( dim_product ) ) )
+
+// ---------- Channel mix ----------
+Online Revenue Share % =
+DIVIDE (
+    CALCULATE ( [Revenue], dim_channel[channel_type] IN { "Online marketplace", "Brand website" } ),
+    [Revenue]
+)
+
+// ---------- Display helpers ----------
+Last Data Date = MAX ( dim_date[date] )
+
+Growth Arrow =
+IF ( [Revenue YoY %] >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( [Revenue YoY %] ), "0.0%" )
+
+Margin Status =
+SWITCH ( TRUE (), [Gross Margin %] >= 0.14, "Healthy", [Gross Margin %] >= 0.11, "Watch", "Low" )
