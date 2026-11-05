@@ -1,39 +1,35 @@
-# Data model (star schema)
+# Data model
 
-One fact table (`fact_sales`, one row per order line) surrounded by four dimensions.
+Use a **star schema**. `fact_sales` is the central fact table; the four dimensions filter it.
 
-```
- dim_product ──┐
- dim_region  ──┼──< fact_sales >── dim_date
- dim_channel ──┘
-```
+## Relationships
 
-## Relationships (Model view → drag the key onto the matching key)
+Create these active, single-direction, one-to-many relationships:
 
-| From (many) | To (one) | Cardinality |
+| Dimension (one side) | Fact (many side) | Cardinality |
 |---|---|---|
-| fact_sales[product_id] | dim_product[product_id] | many-to-one |
-| fact_sales[region_id]  | dim_region[region_id]   | many-to-one |
-| fact_sales[channel_id] | dim_channel[channel_id] | many-to-one |
-| fact_sales[order_date] | dim_date[date]          | many-to-one |
+| `dim_product[product_id]` | `fact_sales[product_id]` | 1:* |
+| `dim_region[region_id]` | `fact_sales[region_id]` | 1:* |
+| `dim_channel[channel_id]` | `fact_sales[channel_id]` | 1:* |
+| `dim_date[date]` | `fact_sales[order_date]` | 1:* |
 
-All relationships: single direction (dimension → fact), active.
+Set cross-filter direction to **Single** (dimension → fact). Mark `dim_date` as the date table using `dim_date[date]`.
 
-Then select `dim_date` → **Table tools → Mark as date table** → choose `date`.
+## Tables
 
-## Columns
+- `fact_sales`: one row per order line; includes date and dimension keys, units, MRP, discount, selling price, unit cost, return flag and optional customer rating.
+- `dim_product`: model, series, RAM/storage variant, price band, launch date, MRP and unit cost.
+- `dim_region`: state, zone and hub city.
+- `dim_channel`: sales channel and channel type.
+- `dim_date`: continuous daily calendar from 1 Jan 2025 to 31 Oct 2026.
 
-| Table | Key columns |
-|---|---|
-| fact_sales | order_line_id, order_date, product_id, region_id, channel_id, units, mrp, discount_pct, unit_price, unit_cost, returned (0/1), customer_rating |
-| dim_product | product_id, model, variant, series, price_band, launch_date, mrp, unit_cost |
-| dim_region | region_id, state, zone, hub_city |
-| dim_channel | channel_id, channel, channel_type |
-| dim_date | date, year, month_num, month_name, month_start, year_month, quarter, weekday |
+## Power Query data types
 
-## Suggested column tweaks
+- Dates: `fact_sales[order_date]`, `dim_product[launch_date]`, `dim_date[date]`, `dim_date[month_start]` → Date.
+- Whole number: IDs, `units`, `returned`, RAM/storage, year/month/weekday numbers.
+- Decimal/fixed decimal: MRP, unit price, unit cost, discount percentage, customer rating.
 
-- `dim_date[month_name]` → **Sort by column** → `month_num`
-- `fact_sales[order_date]` → data type **Date**
-- `fact_sales[returned]` → keep as whole number (used in a measure)
-- Hide the key columns in Report view (right-click → Hide) so users pick from dimension tables.
+## Sorting
+
+Select `dim_date[month_name]` and choose **Sort by column → month_num**.
+Use `dim_date[year_month]` for chronological month axes.

@@ -1,89 +1,68 @@
-// =====================================================================
-// Motorola Mobile Sales - DAX measures
-// Create an empty table named "_Measures" (Home > Enter data) and add
-// each measure below with Modeling > New measure.
-// Tables: fact_sales, dim_product, dim_region, dim_channel, dim_date
-// =====================================================================
-
-// ---------- Core ----------
-Units Sold = SUM ( fact_sales[units] )
+-- Create a dedicated _Measures table, then add these one by one using
+-- Modeling > New measure in Power BI Desktop.
 
 Revenue =
 SUMX ( fact_sales, fact_sales[units] * fact_sales[unit_price] )
 
-Cost =
-SUMX ( fact_sales, fact_sales[units] * fact_sales[unit_cost] )
-
-Gross Profit = [Revenue] - [Cost]
-
-Gross Margin % = DIVIDE ( [Gross Profit], [Revenue] )
-
-Orders = COUNTROWS ( fact_sales )
-
-Avg Selling Price = DIVIDE ( [Revenue], [Units Sold] )
-
-Revenue (Crore) = DIVIDE ( [Revenue], 10000000 )
-
-// ---------- Pricing & discounting ----------
-MRP Value =
+Gross Sales =
 SUMX ( fact_sales, fact_sales[units] * fact_sales[mrp] )
 
-Avg Discount % = 1 - DIVIDE ( [Revenue], [MRP Value] )
+Total Cost =
+SUMX ( fact_sales, fact_sales[units] * fact_sales[unit_cost] )
 
-// ---------- Returns & customer ----------
-Returned Orders =
-CALCULATE ( [Orders], fact_sales[returned] = 1 )
+Gross Profit =
+[Revenue] - [Total Cost]
 
-Return Rate % = DIVIDE ( [Returned Orders], [Orders] )
+Gross Margin % =
+DIVIDE ( [Gross Profit], [Revenue] )
 
-Avg Rating = AVERAGE ( fact_sales[customer_rating] )
+Units Sold =
+SUM ( fact_sales[units] )
 
-// ---------- Time intelligence (dim_date must be marked as a date table) ----------
-Revenue LY =
+Order Lines =
+DISTINCTCOUNT ( fact_sales[order_line_id] )
+
+Average Selling Price =
+DIVIDE ( [Revenue], [Units Sold] )
+
+Average Discount % =
+1 - DIVIDE ( [Revenue], [Gross Sales] )
+
+Returned Lines =
+CALCULATE (
+    DISTINCTCOUNT ( fact_sales[order_line_id] ),
+    fact_sales[returned] = 1
+)
+
+Return Rate % =
+DIVIDE ( [Returned Lines], [Order Lines] )
+
+Average Customer Rating =
+AVERAGE ( fact_sales[customer_rating] )
+
+Revenue PY =
 CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( dim_date[date] ) )
 
-Revenue YoY % = DIVIDE ( [Revenue] - [Revenue LY], [Revenue LY] )
+Revenue YoY Change =
+[Revenue] - [Revenue PY]
 
-Revenue MoM % =
-VAR prev = CALCULATE ( [Revenue], DATEADD ( dim_date[date], -1, MONTH ) )
-RETURN DIVIDE ( [Revenue] - prev, prev )
+Revenue YoY % =
+DIVIDE ( [Revenue YoY Change], [Revenue PY] )
 
-Revenue YTD = TOTALYTD ( [Revenue], dim_date[date] )
+Revenue YTD =
+TOTALYTD ( [Revenue], dim_date[date] )
 
-Revenue 3M Moving Avg =
-// average monthly revenue over the last 3 months
-DIVIDE (
-    CALCULATE ( [Revenue], DATESINPERIOD ( dim_date[date], MAX ( dim_date[date] ), -3, MONTH ) ),
-    3
-)
-
-// ---------- Share & ranking ----------
 Revenue Share % =
-DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_product ) ) )
-
-Revenue Share by Region % =
-DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( dim_region ) ) )
-
-Model Rank = RANKX ( ALL ( dim_product[model] ), [Revenue], , DESC, DENSE )
-
-Top 3 Model Revenue Share % =
-VAR top3 =
-    TOPN ( 3, ALL ( dim_product[model] ), [Revenue], DESC )
-RETURN
-    DIVIDE ( CALCULATE ( [Revenue], KEEPFILTERS ( top3 ) ), CALCULATE ( [Revenue], ALL ( dim_product ) ) )
-
-// ---------- Channel mix ----------
-Online Revenue Share % =
 DIVIDE (
-    CALCULATE ( [Revenue], dim_channel[channel_type] IN { "Online marketplace", "Brand website" } ),
-    [Revenue]
+    [Revenue],
+    CALCULATE ( [Revenue], REMOVEFILTERS ( dim_product ), REMOVEFILTERS ( dim_region ), REMOVEFILTERS ( dim_channel ) )
 )
 
-// ---------- Display helpers ----------
-Last Data Date = MAX ( dim_date[date] )
+Model Revenue Rank =
+RANKX ( ALL ( dim_product[model] ), [Revenue], , DESC, DENSE )
 
-Growth Arrow =
-IF ( [Revenue YoY %] >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( [Revenue YoY %] ), "0.0%" )
+Units Returned =
+CALCULATE ( [Units Sold], fact_sales[returned] = 1 )
 
-Margin Status =
-SWITCH ( TRUE (), [Gross Margin %] >= 0.14, "Healthy", [Gross Margin %] >= 0.11, "Watch", "Low" )
+Discount Amount =
+[Gross Sales] - [Revenue]
